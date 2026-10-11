@@ -75,7 +75,7 @@ flutter config --no-analytics --android-sdk="$ANDROID_HOME" --jdk-dir="$JAVA_HOM
 python3 - <<'PYSDK'
 import os, pathlib, subprocess, urllib.parse
 command = ['sdkmanager', '--sdk_root=' + os.environ['ANDROID_HOME'], 'platform-tools',
-    'platforms;android-35', 'platforms;android-36', 'build-tools;36.0.0',
+    'platforms;android-34', 'platforms;android-35', 'platforms;android-36', 'build-tools;36.0.0',
     'ndk;28.2.13676358', 'cmake;3.22.1']
 proxy = urllib.parse.urlparse(os.environ.get('HTTPS_PROXY', ''))
 if proxy.hostname:

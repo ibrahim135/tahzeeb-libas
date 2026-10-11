@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../shared/presentation/common.dart';
+import 'shop_editor.dart';
 import '../../transfer/presentation/export_screen.dart';
 import '../../transfer/presentation/import_preview_screen.dart';
 
@@ -82,6 +83,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     child: ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
       children: [
+        ref
+            .watch(shopSettingsProvider)
+            .when(
+              loading: () => const LinearProgressIndicator(),
+              error: (e, _) => ErrorNotice(
+                friendlyError(e),
+                onRetry: () => ref.invalidate(shopSettingsProvider),
+              ),
+              data: (shop) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(shop.name),
+                subtitle: const Text('Shop details and receipt notes'),
+                trailing: const Icon(Icons.edit_outlined),
+                onTap: working == null
+                    ? () => Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => ShopEditor(initial: shop),
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+        const SizedBox(height: 16),
         Text(
           'Offline storage',
           style: Theme.of(context).textTheme.headlineSmall,
@@ -128,7 +153,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           'For adding historic records, start with the blank template and follow the separate Examples sheet. The app ignores example rows. Supported files: up to 8 MiB, 20,000 data rows per sheet and 100,000 total. Split larger sets into complete orders with their related rows.',
         ),
         const SizedBox(height: 24),
-        const Text('Development version · 0.4.0'),
+        const Text('Development version · 0.5.0'),
+        TextButton(
+          onPressed: () => showLicensePage(
+            context: context,
+            applicationName: 'Tahzeeb Libas',
+            applicationVersion: '0.5.0',
+          ),
+          child: const Text('Open-source licences'),
+        ),
       ],
     ),
   );

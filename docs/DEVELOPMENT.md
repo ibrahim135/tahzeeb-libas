@@ -61,7 +61,7 @@ Android platform automatic backup stays disabled; Phase 4 supplies deliberate us
 - `lib/features/orders/domain/order_query.dart`: validated inclusive filters, sort options, summaries and edit conflicts.
 - `lib/features/orders/data/drift_tailoring_repository.dart`: atomic create/edit, expected-version checks, escaped customer/bill/phone search, independent charge/payment aggregation and reactive list updates. Lists load 100 orders at a time, up to 10000; narrow filters for larger result sets. Customer measurement-copy selection considers the latest 1000 orders.
 - `lib/features/orders/presentation/`: order lists, filters, editor, garment inputs and separate PAYMENT/MEASUREMENTS views. Numeric bill suggestion remains editable for historic bills. A selected garment type suggests measurement sections; populated sections require confirmation before clearing. Copying saved measurements copies fitting notes as well.
-- `lib/shared/presentation/common.dart`: INR/date display, local error messages, discard prompts and shared inputs. `lib/app/providers.dart` owns dependencies and reactive queries; the navigation shell retains search/filter state between tabs.
+- `lib/core/display_formats.dart`: pure INR/status display (re-exported by common); `lib/shared/presentation/common.dart`: date inputs, local error messages, discard prompts and shared inputs. `lib/app/providers.dart` owns dependencies and reactive queries; the navigation shell retains search/filter state between tabs.
 
 No database tables or dependency versions changed in Phase 2; schema remains v1. Tests in `phase2_repository_test.dart`, `order_draft_test.dart` and `phase2_widget_test.dart` cover financial/stale guards, rollback, search/filter/sort, snapshot isolation and the real input/navigation flows. Existing persistence and migration-baseline tests remain active.
 
@@ -99,8 +99,40 @@ Build on the same local machine/signing key used for the installed debug APK. Ke
 - `data/android_workbook_files.dart`: current file_picker system document APIs, bounded streaming reads, system save and share_plus integration. Recent private share copies are retained for receiving apps and stale copies are cleared on the next share. No main-manifest permission change.
 - `presentation/`: save/share readiness and import review screens; `features/settings/presentation/settings_screen.dart` provides entry points and backup guidance. Busy operations disable duplicate actions/back navigation. Cancelling a picker/save/preview makes no database change.
 
-Read WORKBOOK_SCHEMA.md for every field, null/text convention, resource limit, example/template rule and conflict policy. Workbook and DB schemas are both v1; no migration or regenerated Drift files are needed for Phase 4. Settings editing and PDFs remain Phase 5; Phase 4 preserves settings through export and explicit restore. Import is not an editor for existing bills.
+Read WORKBOOK_SCHEMA.md for every field, null/text convention, resource limit, example/template rule and conflict policy. Workbook and DB schemas are both v1; no migration or regenerated Drift files are needed for Phase 4. Phase 5 now adds settings editing and PDFs; Phase 4 preserves settings through export and explicit restore. Import is not an editor for existing bills.
 
 New tests: workbook_repository_test.dart, workbook_codec_test.dart and workbook_widget_test.dart. These cover full-field transfers, audited history, no-write duplicate import, references/conflicts, late counter-trigger rollback including all tables, stale preview, duplicate/settings review, file reopen, archive/formula attacks, text conventions, reactive order refresh and compact preview/save/cancel controls. Mocked save/share widget tests do not certify actual Android file-provider behavior.
 
 On the Android phone: update with the same signing key; check saved v0.3 records; export/save/share a workbook; preview and cancel; re-import the same backup (zero new records); save/fill the blank template and preview a new complete order; check measured/voided payment history. Test restoration into an empty installation on a separate test device/profile rather than deleting the shop’s live records. Keep the actual backup outside the phone. Record device/Android version and chosen document providers.
+
+## Phase 5 shop settings and documents
+
+Read [DOCUMENTS.md](DOCUMENTS.md) for document fields, privacy, fonts, pagination,
+copy semantics, repeatable synthetic inspection and the local Android checklist.
+
+- `features/settings/domain/shop_settings.dart` and `data/settings_repository.dart`:
+  validated settings, reactive reads and transactional expected-timestamp edits.
+  Existing singleton schema v1 and complete XLSX fields are reused.
+- `features/documents/data/document_repository.dart`: consistent saved
+  order/customer/settings snapshot, without writing business records.
+- `features/documents/domain/document.dart`: immutable receipt/warehouse content
+  projections, exact financial display and section-labelled item snapshots.
+- `application/document_pdf.dart`: explicit offline fonts, worker-isolate A4
+  rendering, spanning text, page numbering and unsupported-character validation.
+- `application/document_actions.dart`: native PDF save/share/print adapter;
+  `shared/platform/system_files.dart` shares the existing XLSX system save/share
+  implementation without changing its picker/size limits.
+- `presentation/document_screen.dart`: generated-byte preview, fixed A4,
+  refresh/copy controls, guarded actions and separate cancel/error feedback.
+  Order details provide actions in the corresponding PAYMENT/MEASUREMENTS tabs.
+- `assets/fonts/`: official pinned Noto fonts and SIL OFL 1.1 attribution.
+  The license is packaged and registered in Flutter's licence registry.
+
+Use the existing local pull/build/install commands above for v0.5.0. No SQLite or
+workbook schema migration is required. pdf 3.12.0 / printing 5.14.3 were resolved
+against the working Flutter 3.47.7 and Excel/archive versions; preserve pubspec.lock.
+No API keys, runtime font requests or main-manifest permissions are added.
+Unsaved drafts and PDF previews remain transient; confirmed records remain durable.
+
+The original chat logo is selected artwork, pending its PNG/JPG file in the
+workspace. Theme customization is planned after Phase 6, not implemented here.

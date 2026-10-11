@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: Phases 1–4 authorized and implemented; see ENVIRONMENT_STATUS.md for verification and device limitations. Start later phases only after an explicit user instruction. Work on one requested phase at a time; preserve previously working functionality.
+Status: Phases 1–5 authorized and implemented; see ENVIRONMENT_STATUS.md for verification and device limitations. Start later phases only after an explicit user instruction. Work on one requested phase at a time; preserve previously working functionality.
 
 ## Environment and dependency selection
 
@@ -25,7 +25,7 @@ lib/
     payments/{domain,application,presentation}/
     settings/{domain,data,application,presentation}/
     transfer/{domain,data,application,presentation}/
-    documents/{application,presentation}/
+    documents/{domain,data,application,presentation}/
 test/                  # mirrors features, DB/migration/fixture tests
 integration_test/      # Android lifecycle and critical workflows
 docs/                  # spec, workbook schema, validation and release guides
@@ -60,13 +60,13 @@ Acceptance: round-trip all persisted fields into an empty database; second impor
 
 ## Phase 5 — customer receipts and warehouse slips
 
-Deliver: separate PDF builders, shop settings, previews, save/share and Android printing. Support multiline/page-spanning content and embedded fonts. Shop copies use these layouts; print copies use platform dialog.
+Deliver: separate receipt/warehouse content projections with shared A4 layout, validated shop settings and fresh transactional bill snapshots; preview/save/share/Android printing. English-only bundled Noto Sans fonts include INR and license. Long text explicitly spans pages; generation runs off the UI thread and unsupported text fails clearly. Shop copies use these layouts; print copies use the platform dialog. Preserve existing schema v1/settings backups. Resolved dependencies: pdf 3.12.0 and printing 5.14.3, compatible with Flutter 3.47.7 and the Excel/archive lockfile.
 
 Acceptance: receipt displays accurate charges/discount/received/balance; warehouse PDF contains garment measurements/notes and no monetary data. Test missing measurements, long notes, multiple garments/pages and INR rendering. Verify preview/share/save/print on an Android target with the intended paper format. Required automated checks and build pass; physical printing is reported distinctly from PDF generation.
 
 ## Phase 6 — release hardening and installable APK
 
-Deliver: compact-screen/accessibility pass, migration fixtures and upgrade tests, lifecycle integration tests, user backup guide, owner-approved shop identity/app identifier, versioning and signed release APK/checksum. Owner securely provides/manages signing configuration outside Git. Do not generate disposable production signing ownership silently.
+Deliver: compact-screen/accessibility pass, migration fixtures and upgrade tests, lifecycle integration tests, user backup guide, owner-approved shop identity/app identifier, versioning and signed release APK/checksum. Integrate and verify the supplied original TL logo with adaptive/legacy Android icons once its PNG/JPG file is available. Owner securely provides/manages signing configuration outside Git. Do not generate disposable production signing ownership silently.
 
 Acceptance: full analyze/test suite passes; migration upgrade preserves every business field; process force-stop/relaunch retains records; import/export and PDF/file integrations work on a supported real Android target; production manifest needs no internet or broad storage access; release APK installs and survives an upgrade. Record tested device/Android version, known limitations and reproducible build commands. Release sign-off requires review of actual workflow with the shop owner, not only test success.
 
@@ -74,6 +74,23 @@ Acceptance: full analyze/test suite passes; migration upgrade preserves every bu
 
 Use the existing isolated `/workspace/tahzeeb-libas` checkout; no worktree unless explicitly requested. For every phase report changed files, exact checks and outcomes, unresolved issues and next phase. Avoid sensitive customer data in logs/fixtures. Never silently change business defaults. If toolchain/device/signing access blocks a required check, complete independent work and report the precise unmet prerequisite without claiming readiness. Keep environment install/start instructions tested and saved when setup is actually performed.
 
+## Planned Phase 7 — optional appearance settings
+
+Requested as future work, after the core release/device checks. Propose
+light/dark/system mode and an accessible gold accent matching the selected TL
+logo. Keep numeric/payment/status states clear and preserve simple shop workflows.
+Persist appearance locally; update workbook/schema migrations and round-trip tests
+only when new fields are introduced. Verify compact phones, contrast, text scaling,
+restart/restore and system mode. Keep printed PDFs ink-friendly. No implementation
+or additional theme dependencies are included in Phase 5; start only on instruction.
+
 ## Current stopping point
 
-Phase 4 versioned XLSX backup/export/import is implemented, including settings/counter restoration, safe preview, bounded parsing and atomic add-only commits. Await instruction to begin Phase 5 (customer receipt and warehouse measurement-slip PDFs). Release hardening remains Phase 6. Android file picker/save/share still needs a real-device check; cloud compilation and automated tests are separate evidence. See ENVIRONMENT_STATUS.md for executed checks and outstanding Android-device validation.
+Phase 5 (v0.5.0+5) supplies editable shop details, English offline A4 receipts and
+warehouse measurement slips, embedded fonts, preview/save/share/print and shop
+copies. Automated checks and APK compilation are documented in ENVIRONMENT_STATUS.
+Android native preview/save/share/print and physical copies still require the
+local phone; mock tests and standalone PDF inspection are separate evidence.
+Await instruction for Phase 6 release hardening. The selected logo is recorded,
+but original PNG/JPG bytes are needed before faithfully replacing launcher assets.
+Theme customization is planned for optional Phase 7 and is not implemented yet.

@@ -1,3 +1,9 @@
+import '../features/settings/data/settings_repository.dart';
+import '../features/settings/domain/shop_settings.dart';
+import '../features/documents/data/document_repository.dart';
+import '../features/documents/application/document_pdf.dart';
+import '../features/documents/application/document_actions.dart';
+
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,4 +60,20 @@ final workbookTransferProvider = Provider<WorkbookTransfer>(
     ref.watch(workbookRepositoryProvider),
     ref.watch(workbookFilesProvider),
   ),
+);
+
+final settingsRepositoryProvider = Provider<SettingsRepository>(
+  (ref) => SettingsRepository(ref.watch(databaseProvider)),
+);
+final shopSettingsProvider = StreamProvider<ShopSettingsRecord>(
+  (ref) => ref.watch(settingsRepositoryProvider).watch(),
+);
+final documentRepositoryProvider = Provider<DocumentRepository>(
+  (ref) => DocumentRepository(ref.watch(databaseProvider)),
+);
+final documentPdfProvider = FutureProvider<DocumentPdf>(
+  (ref) async => DocumentPdf(await DocumentFonts.load()),
+);
+final documentActionsProvider = Provider<DocumentActions>(
+  (ref) => AndroidDocumentActions(),
 );

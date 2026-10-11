@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../shared/presentation/common.dart';
+import '../../documents/domain/document.dart';
+import '../../documents/presentation/document_screen.dart';
 import '../../payments/presentation/payment_editor.dart';
 import '../../payments/presentation/payment_history.dart';
 import '../domain/catalog.dart';
@@ -29,6 +31,18 @@ class OrderDetails extends ConsumerWidget {
     ref.invalidate(orderProvider(id));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
   }
+
+  Widget documentButton(BuildContext context, DocumentKind kind) =>
+      OutlinedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => DocumentScreen(orderId: id, kind: kind),
+          ),
+        ),
+        icon: const Icon(Icons.picture_as_pdf_outlined),
+        label: Text(kind.label),
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ref
@@ -121,6 +135,7 @@ class OrderDetails extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(paymentStatusLabel(order.paymentStatus)),
+                      documentButton(context, DocumentKind.receipt),
                       const SizedBox(height: 12),
                       FilledButton.icon(
                         key: const Key('addPayment'),
@@ -150,6 +165,7 @@ class OrderDetails extends ConsumerWidget {
                   ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
+                      documentButton(context, DocumentKind.warehouse),
                       for (final item in order.items)
                         Card(
                           child: Padding(

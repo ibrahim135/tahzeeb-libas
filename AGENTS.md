@@ -10,3 +10,5 @@
 - No secrets or sensitive customer details in Git/logs. Use Android system file integrations without broad storage permissions. Warehouse PDFs exclude money.
 - Preserve working functionality and user changes. Write working code and meaningful phase tests. Run flutter analyze, flutter test and applicable builds; distinguish device checks, skips and blockers from passes.
 - Report changed files, executed validation, remaining issues and next steps. Do not claim production readiness without durable-data, Android lifecycle and release validation.
+- Phase 5 PDFs use English-only A4, bundled Noto fonts/INR and frozen saved snapshots; never download fonts at runtime. Preserve both copy formats and warehouse financial privacy.
+- The user selected the gold-on-black TL crest; preserve original artwork when its file is available. Themes are future planned work after Phase 6, not an invitation to implement them in Phase 5.

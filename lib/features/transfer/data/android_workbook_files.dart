@@ -1,12 +1,8 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:uuid/uuid.dart';
 
+import '../../../shared/platform/system_files.dart';
 import '../application/workbook_transfer.dart';
 import '../domain/workbook.dart';
 
@@ -47,40 +43,18 @@ final class AndroidWorkbookFiles implements WorkbookFiles {
   }
 
   @override
-  Future<bool> save(Uint8List bytes, String fileName) async =>
-      await FilePicker.saveFile(
-        fileName: fileName,
-        bytes: bytes,
-        mimeType: workbookMimeType,
-        dialogTitle: 'Save Excel workbook',
-      ) !=
-      null;
-
+  Future<bool> save(Uint8List bytes, String fileName) => SystemFiles.save(
+    bytes,
+    fileName,
+    mimeType: workbookMimeType,
+    title: 'Save Excel workbook',
+  );
   @override
-  Future<bool> share(Uint8List bytes, String fileName) async {
-    final directory = Directory(
-      p.join((await getTemporaryDirectory()).path, 'workbook_shares'),
-    );
-    await directory.create(recursive: true);
-    final expiry = DateTime.now().subtract(const Duration(days: 7));
-    await for (final entity in directory.list()) {
-      if (entity is Directory &&
-          (await entity.stat()).modified.isBefore(expiry)) {
-        await entity.delete(recursive: true);
-      }
-    }
-    // Retain recent files while receiving apps read them; remove stale copies
-    // on the next share. These temporary files are not durable backups.
-    final folder = Directory(p.join(directory.path, const Uuid().v4()));
-    await folder.create();
-    final file = File(p.join(folder.path, fileName));
-    await file.writeAsBytes(bytes, flush: true);
-    final result = await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path, mimeType: workbookMimeType)],
-        title: 'Tahzeeb Libas Excel workbook',
-      ),
-    );
-    return result.status != ShareResultStatus.dismissed;
-  }
+  Future<bool> share(Uint8List bytes, String fileName) => SystemFiles.share(
+    bytes,
+    fileName,
+    mimeType: workbookMimeType,
+    title: 'Tahzeeb Libas Excel workbook',
+    cacheDirectory: 'workbook_shares',
+  );
 }
