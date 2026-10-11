@@ -117,22 +117,7 @@ final class DriftTailoringRepository implements TailoringRepository {
         );
     await _insertItems(order);
     for (final payment in order.payments) {
-      await db
-          .into(db.payments)
-          .insert(
-            PaymentsCompanion.insert(
-              id: payment.id,
-              orderId: order.id,
-              amountPaise: payment.amount.paise,
-              paymentDate: payment.date.iso,
-              method: Value(payment.method),
-              notes: Value(payment.notes),
-              createdAt: payment.createdAt.toIso8601String(),
-              updatedAt: payment.updatedAt.toIso8601String(),
-              voidedAt: Value(payment.voidedAt?.toIso8601String()),
-              voidReason: Value(payment.voidReason),
-            ),
-          );
+      await _insertPayment(order.id, payment, includeReplacement: false);
     }
     // Resolve references after all payments exist, independent of list order.
     for (final payment in order.payments.where(
@@ -153,6 +138,148 @@ final class DriftTailoringRepository implements TailoringRepository {
           .update(db.appState)
           .write(AppStateCompanion(nextBillNumber: Value(numeric + 1)));
     }
+  });
+
+  Future<void> _insertPayment(
+    String orderId,
+    PaymentRecord payment, {
+    bool includeReplacement = true,
+  }) => db
+      .into(db.payments)
+      .insert(
+        PaymentsCompanion.insert(
+          id: payment.id,
+          orderId: orderId,
+          amountPaise: payment.amount.paise,
+          paymentDate: payment.date.iso,
+          method: Value(payment.method),
+          notes: Value(payment.notes),
+          createdAt: payment.createdAt.toIso8601String(),
+          updatedAt: payment.updatedAt.toIso8601String(),
+          voidedAt: Value(payment.voidedAt?.toIso8601String()),
+          voidReason: Value(payment.voidReason),
+          replacesPaymentId: Value(
+            includeReplacement ? payment.replacesPaymentId : null,
+          ),
+        ),
+      )
+      .then((_) {});
+
+  static void _requireNewPayment(PaymentRecord payment) {
+    if (payment.voidedAt != null || payment.replacesPaymentId != null) {
+      throw ArgumentError(
+        'Use the correction workflow to change recorded payments.',
+      );
+    }
+  }
+
+  static DateTime _nextUpdate(DateTime previous) {
+    final now = DateTime.now().toUtc();
+    return now.isAfter(previous)
+        ? now
+        : previous.add(const Duration(microseconds: 1));
+  }
+
+  Future<void> _updatePaymentTimestamp(OrderRecord order, DateTime timestamp) =>
+      (db.update(db.orders)..where((o) => o.id.equals(order.id)))
+          .write(OrdersCompanion(updatedAt: Value(timestamp.toIso8601String())))
+          .then((_) {});
+
+  @override
+  Future<void> addPayment(
+    String orderId,
+    PaymentRecord payment,
+  ) => db.transaction(() async {
+    _requireNewPayment(payment);
+    final order = await getOrder(orderId);
+    if (order == null) throw ArgumentError('Order not found.');
+    if (payment.amount.paise > order.balancePaise) {
+      throw ArgumentError(
+        'Payment exceeds the remaining balance. Reopen the bill to check the current balance.',
+      );
+    }
+    final updated = _nextUpdate(order.updatedAt);
+    // Validate dates, IDs and sums against the ledger read in this transaction.
+    order.withPayments([...order.payments, payment], updated);
+    await _insertPayment(order.id, payment);
+    await _updatePaymentTimestamp(order, updated);
+  });
+
+  @override
+  Future<void> correctPayment(
+    String orderId,
+    String paymentId, {
+    required DateTime expectedUpdatedAt,
+    required String reason,
+    PaymentRecord? replacement,
+  }) => db.transaction(() async {
+    final explanation = reason.trim();
+    if (explanation.isEmpty) {
+      throw ArgumentError('Enter a reason for the correction.');
+    }
+    if (replacement != null) _requireNewPayment(replacement);
+    final order = await getOrder(orderId);
+    if (order == null) throw ArgumentError('Order not found.');
+    final original = order.payments.where((p) => p.id == paymentId).firstOrNull;
+    if (original == null) {
+      throw ArgumentError('Payment does not belong to this bill.');
+    }
+    if (original.voidedAt != null || original.updatedAt != expectedUpdatedAt) {
+      throw const EditConflict();
+    }
+    final updated = _nextUpdate(
+      order.updatedAt.isAfter(original.updatedAt)
+          ? order.updatedAt
+          : original.updatedAt,
+    );
+    final voided = PaymentRecord(
+      id: original.id,
+      amount: original.amount,
+      date: original.date,
+      method: original.method,
+      notes: original.notes,
+      createdAt: original.createdAt,
+      updatedAt: updated,
+      voidedAt: updated,
+      voidReason: explanation,
+      replacesPaymentId: original.replacesPaymentId,
+    );
+    final next = replacement == null
+        ? null
+        : PaymentRecord(
+            id: replacement.id,
+            amount: replacement.amount,
+            date: replacement.date,
+            method: replacement.method,
+            notes: replacement.notes,
+            createdAt: replacement.createdAt,
+            updatedAt: replacement.updatedAt,
+            replacesPaymentId: original.id,
+          );
+    final ledger = [
+      for (final p in order.payments) p.id == original.id ? voided : p,
+      ?next,
+    ];
+    final paid = ledger
+        .where((p) => p.voidedAt == null)
+        .fold<int>(0, (sum, p) => sum + p.amount.paise);
+    if (paid > order.totalPaise) {
+      throw ArgumentError(
+        'Replacement payment exceeds the order total after other payments.',
+      );
+    }
+    order.withPayments(ledger, updated);
+    await (db.update(
+      db.payments,
+    )..where((p) => p.id.equals(original.id))).write(
+      PaymentsCompanion(
+        updatedAt: Value(updated.toIso8601String()),
+        voidedAt: Value(updated.toIso8601String()),
+        voidReason: Value(explanation),
+      ),
+    );
+    if (next != null) await _insertPayment(order.id, next);
+    await _updatePaymentTimestamp(order, updated);
   });
 
   Future<void> _insertItems(OrderRecord order) async {

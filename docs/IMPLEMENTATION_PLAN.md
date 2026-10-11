@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: Phases 1 and 2 authorized and implemented; see ENVIRONMENT_STATUS.md for verification and device limitations. Start later phases only after an explicit user instruction. Work on one requested phase at a time; preserve previously working functionality.
+Status: Phases 1–3 authorized and implemented; see ENVIRONMENT_STATUS.md for verification and device limitations. Start later phases only after an explicit user instruction. Work on one requested phase at a time; preserve previously working functionality.
 
 ## Environment and dependency selection
 
@@ -76,4 +76,4 @@ Use the existing isolated `/workspace/tahzeeb-libas` checkout; no worktree unles
 
 ## Current stopping point
 
-Phase 2 customer/order workflow is implemented. Await instruction to begin Phase 3 (advance/additional payments and correction history). XLSX, PDFs and release hardening remain later phases. See ENVIRONMENT_STATUS.md for executed checks and outstanding Android-device validation.
+Phase 3 payments and correction history are implemented. Await instruction to begin Phase 4 (versioned XLSX backup/export/import). PDFs and release hardening remain later phases. See ENVIRONMENT_STATUS.md for executed checks and outstanding Android-device validation.

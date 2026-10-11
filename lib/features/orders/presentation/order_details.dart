@@ -3,12 +3,33 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../shared/presentation/common.dart';
+import '../../payments/presentation/payment_editor.dart';
+import '../../payments/presentation/payment_history.dart';
 import '../domain/catalog.dart';
+import '../domain/records.dart';
 import 'order_editor.dart';
 
 class OrderDetails extends ConsumerWidget {
   final String id;
   const OrderDetails({super.key, required this.id});
+  Future<void> receivePayment(
+    BuildContext context,
+    WidgetRef ref,
+    OrderRecord order, {
+    PaymentRecord? original,
+  }) async {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentEditor(order: order, original: original),
+      ),
+    );
+    if (!context.mounted || result == null) return;
+    ref.invalidate(orderProvider(id));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) => ref
       .watch(orderProvider(id))
@@ -100,6 +121,25 @@ class OrderDetails extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(paymentStatusLabel(order.paymentStatus)),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        key: const Key('addPayment'),
+                        onPressed: order.balancePaise == 0
+                            ? null
+                            : () => receivePayment(context, ref, order),
+                        icon: const Icon(Icons.payments_outlined),
+                        label: Text(
+                          order.balancePaise == 0
+                              ? 'Fully paid'
+                              : 'Add received payment',
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      PaymentHistory(
+                        payments: order.payments,
+                        correct: (p) =>
+                            receivePayment(context, ref, order, original: p),
+                      ),
                       if (order.notes != null)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),

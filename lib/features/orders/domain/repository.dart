@@ -17,6 +17,14 @@ abstract interface class TailoringRepository {
   Stream<List<OrderSummary>> watchOrders(OrderQuery query);
   Future<void> createOrder(OrderRecord order, {CustomerRecord? newCustomer});
   Future<OrderRecord?> getOrder(String id);
+  Future<void> addPayment(String orderId, PaymentRecord payment);
+  Future<void> correctPayment(
+    String orderId,
+    String paymentId, {
+    required DateTime expectedUpdatedAt,
+    required String reason,
+    PaymentRecord? replacement,
+  });
   Stream<int> watchOrderCount();
   Future<String> suggestBillNumber();
 }

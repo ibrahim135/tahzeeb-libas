@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/value_objects.dart';
 import '../../../shared/presentation/common.dart';
+import '../../payments/application/payment_draft.dart';
 import '../../customers/presentation/customer_editor.dart';
 import '../../customers/presentation/customer_picker.dart';
 import '../application/order_draft.dart';
@@ -21,7 +23,13 @@ class OrderEditor extends ConsumerStatefulWidget {
 class _OrderEditorState extends ConsumerState<OrderEditor> {
   final form = GlobalKey<FormState>();
   late final OrderDraft draft;
-  late final TextEditingController bill, discount, notes;
+  late final TextEditingController bill,
+      discount,
+      notes,
+      advance,
+      advanceMethod,
+      advanceNotes;
+  late BusinessDate advanceDate;
   bool dirty = false, busy = false;
   String? error;
   @override
@@ -33,6 +41,10 @@ class _OrderEditorState extends ConsumerState<OrderEditor> {
       text: widget.initial?.discount.decimal ?? '0.00',
     );
     notes = TextEditingController(text: widget.initial?.notes);
+    advance = TextEditingController();
+    advanceMethod = TextEditingController();
+    advanceNotes = TextEditingController();
+    advanceDate = draft.orderDate;
     initialize();
   }
 
@@ -56,6 +68,9 @@ class _OrderEditorState extends ConsumerState<OrderEditor> {
     bill.dispose();
     discount.dispose();
     notes.dispose();
+    advance.dispose();
+    advanceMethod.dispose();
+    advanceNotes.dispose();
     super.dispose();
   }
 
@@ -175,6 +190,10 @@ class _OrderEditorState extends ConsumerState<OrderEditor> {
         bill: bill.text,
         discount: discount.text,
         notes: notes.text,
+        advance: advance.text,
+        advanceDate: advanceDate,
+        advanceMethod: advanceMethod.text,
+        advanceNotes: advanceNotes.text,
       );
       final repo = ref.read(repositoryProvider);
       if (draft.original == null) {
@@ -206,7 +225,13 @@ class _OrderEditorState extends ConsumerState<OrderEditor> {
   Widget build(BuildContext context) {
     String totals;
     try {
-      totals = 'Order total: ${inr(draft.netTotal(discount.text))}';
+      final total = draft.netTotal(discount.text);
+      final received =
+          draft.original?.paidPaise ??
+          PaymentDraft.optionalAmount(advance.text).paise;
+      totals = received > total
+          ? 'Received amount exceeds the order total.'
+          : 'Order total: ${inr(total)}\nReceived: ${inr(received)}\nBalance: ${inr(total - received)}';
     } catch (_) {
       totals =
           'Enter valid quantities, prices and discount to calculate total.';
@@ -270,6 +295,9 @@ class _OrderEditorState extends ConsumerState<OrderEditor> {
                   label: 'Order date',
                   date: draft.orderDate,
                   onChanged: (date) {
+                    if (advanceDate.compareTo(draft.orderDate) == 0) {
+                      advanceDate = date;
+                    }
                     draft.orderDate = date;
                     changed();
                   },
@@ -346,6 +374,51 @@ class _OrderEditorState extends ConsumerState<OrderEditor> {
                   onChanged: (_) => changed(),
                 ),
                 const SizedBox(height: 12),
+                if (draft.original == null) ...[
+                  Text(
+                    'Advance / received payment',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    key: const Key('advanceAmount'),
+                    controller: advance,
+                    decoration: inputLabel('Advance received (₹, optional)'),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: (v) {
+                      try {
+                        PaymentDraft.optionalAmount(v ?? '');
+                        return null;
+                      } catch (e) {
+                        return friendlyError(e);
+                      }
+                    },
+                  ),
+                  DateInput(
+                    label: 'Advance date',
+                    date: advanceDate,
+                    onChanged: (date) {
+                      advanceDate = date;
+                      changed();
+                    },
+                  ),
+                  TextFormField(
+                    key: const Key('advanceMethod'),
+                    controller: advanceMethod,
+                    decoration: inputLabel('Payment method (optional)'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    key: const Key('advanceNotes'),
+                    controller: advanceNotes,
+                    decoration: inputLabel('Advance notes (optional)'),
+                    minLines: 2,
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Text(totals, style: Theme.of(context).textTheme.titleMedium),
                 if (draft.original != null)
                   Padding(

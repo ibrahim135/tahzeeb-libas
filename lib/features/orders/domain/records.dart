@@ -140,8 +140,13 @@ final class OrderRecord {
       throw ArgumentError('Duplicate item or payment ID.');
     }
     Money(subtotalPaise);
-    if (discount.paise > subtotalPaise || paidPaise > totalPaise) {
-      throw ArgumentError('Discount or payments exceed order total.');
+    if (discount.paise > subtotalPaise) {
+      throw ArgumentError('Discount exceeds subtotal.');
+    }
+    if (paidPaise > totalPaise) {
+      throw ArgumentError(
+        'Received payments exceed the order total. Correct any mistaken payment before reducing charges.',
+      );
     }
     for (final payment in payments) {
       if (payment.date.compareTo(orderDate) < 0 ||
@@ -160,6 +165,21 @@ final class OrderRecord {
       }
     }
   }
+  OrderRecord withPayments(List<PaymentRecord> next, DateTime updated) =>
+      OrderRecord(
+        id: id,
+        billNumber: billNumber,
+        customerId: customerId,
+        orderDate: orderDate,
+        deliveryDate: deliveryDate,
+        status: status,
+        discount: discount,
+        notes: notes,
+        createdAt: createdAt,
+        updatedAt: updated,
+        items: items,
+        payments: next,
+      );
   int get subtotalPaise => items.fold(0, (sum, item) => sum + item.totalPaise);
   int get totalPaise => subtotalPaise - discount.paise;
   int get paidPaise => payments

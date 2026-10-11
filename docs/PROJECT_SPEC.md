@@ -1,6 +1,6 @@
 # Tahzeeb Libas — project specification
 
-Status: agreed baseline; Phases 1 and 2 are implemented. Changes to these defaults can be agreed before their implementation milestone. See IMPLEMENTATION_PLAN.md for the current stopping point.
+Status: agreed baseline; Phases 1–3 are implemented. Changes to these defaults can be agreed before their implementation milestone. See IMPLEMENTATION_PLAN.md for the current stopping point.
 
 ## Purpose and boundaries
 

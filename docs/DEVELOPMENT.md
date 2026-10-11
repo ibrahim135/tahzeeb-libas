@@ -1,8 +1,8 @@
-# Development guide — Phases 1 and 2
+# Development guide — Phases 1–3
 
 ## Scope
 
-Phase 1 introduced an Android Flutter scaffold, Material 3 navigation, Riverpod-owned database/repository providers, validated immutable domain records and transactional Drift persistence. Phase 2 adds customer/order entry and editing, customer history, duplicate review/reuse, search and filters, and per-garment measurements. The PAYMENT tab displays derived charges/balance; advance/additional payment entry and correction history remain Phase 3. XLSX and PDFs remain in their specified later phases. Current development version: 0.2.0+2.
+Phase 1 introduced an Android Flutter scaffold, Material 3 navigation, Riverpod-owned database/repository providers, validated immutable domain records and transactional Drift persistence. Phase 2 adds customer/order entry and editing, customer history, duplicate review/reuse, search and filters, and per-garment measurements. Phase 3 adds advance entry during order creation, received payments on saved bills, dated history and audited void/replacement corrections. The PAYMENT tab displays derived charges, received amounts and balance. XLSX and PDFs remain in their specified later phases. Current development version: 0.3.0+3.
 
 ## Toolchain
 
@@ -35,7 +35,7 @@ Gradle does not automatically honor HTTPS_PROXY. Cloud setup configures its user
 
 Database file: `tahzeeb_libas.sqlite` under application support storage. NativeDatabase runs in a background isolate. Foreign keys and a busy timeout are applied on every opened connection. Schema v1 includes customers, orders, order items, measurements, payments, shop settings and bill allocation state with relationship/search indexes. Amount/status aggregates are calculated by validated domain models, never stored as independent payment status.
 
-Repository `createOrder` inserts the aggregate and optional new customer atomically, including dated advances and independent measurement rows. It never overwrites an existing customer through order creation. Customer updates preserve original creation timestamps and use expected-updated-time checks from editors. Phase 2 order edits check for stale changes and rebuild the proposed aggregate with the actual saved ledger inside the transaction. They preserve existing payments and reject totals below received, including when a caller supplies an empty payment list. Bill conflicts or item collisions roll back the complete edit and any newly created customer. Future payment/correction APIs must apply the same transaction rules.
+Repository `createOrder` inserts the aggregate and optional new customer atomically, including dated advances and independent measurement rows. It never overwrites an existing customer through order creation. Customer updates preserve original creation timestamps and use expected-updated-time checks from editors. Phase 2 order edits check for stale changes and rebuild the proposed aggregate with the actual saved ledger inside the transaction. They preserve existing payments and reject totals below received, including when a caller supplies an empty payment list. Bill conflicts or item collisions roll back the complete edit and any newly created customer. Phase 3 payment/correction APIs apply the same transaction rules and advance the order timestamp, so an already-open order editor cannot overwrite a newly updated bill.
 
 Bounds: ₹1 billion maximum subtotal/amount, 1–10000 quantity per garment, at most 1000 garments per order, date years 1900–9999, bill labels 1–64 characters, measurements positive and less than 1000 inches with up to three decimals. Automatic numeric bill suggestions are below 10^12; larger historic labels remain valid text and do not advance the bounded counter. Leading-zero bill labels remain distinct visible identifiers; historic numeric labels within the counter range advance its suggestion.
 
@@ -65,4 +65,26 @@ Android platform automatic backup is disabled pending deliberate user-visible XL
 
 No database tables or dependency versions changed in Phase 2; schema remains v1. Tests in `phase2_repository_test.dart`, `order_draft_test.dart` and `phase2_widget_test.dart` cover financial/stale guards, rollback, search/filter/sort, snapshot isolation and the real input/navigation flows. Existing persistence and migration-baseline tests remain active.
 
-Before shop deployment, finish payment entry, user-controlled backup and release/device validation. This development APK has no export or recovery UI yet.
+Before shop deployment, finish user-controlled backup and release/device validation. This development APK has no export or recovery UI yet.
+
+## Phase 3 payments
+
+`lib/features/payments/application/payment_draft.dart` parses positive amounts into integer paise and builds immutable dated entries. `payment_editor.dart` handles received-payment and correction forms, optional method/notes, required correction reason, confirmation and unsaved changes. `payment_history.dart` displays original records, visibly excluded voids, reasons/timestamps and links to replacements. `OrderDraft` builds an optional advance into the complete new-order transaction; blank/zero advance creates no payment row. Editing a saved order never adds or erases ledger entries.
+
+`TailoringRepository.addPayment` reads the current aggregate, validates the date/ID and remaining balance, inserts the payment and updates the order timestamp in one transaction. `correctPayment` requires an active payment belonging to this bill and its expected update timestamp. It retains all original fields, adds void reason/time, optionally inserts a linked replacement, validates the resulting active sum and commits the ledger/timestamp together. A duplicate ID or any late insert failure rolls back every change. Payment and delivery statuses stay independent; cancellation does not void receipts.
+
+Payments cannot predate the order or be future-dated. Historical receipt dates remain distinct from the UTC record creation timestamp. Voids correct entry mistakes and do not move money or refund a customer. Genuine refunds and pre-order deposits remain outside the agreed defaults. Active payments alone determine Pending/Partially paid/Paid; zero-total bills are Paid and cannot receive positive amounts. Order edits below received remain blocked; an incorrect receipt must first be corrected explicitly.
+
+Schema remains v1 and dependency versions remain locked. The existing payments table already supports the audit fields. Tests in `payment_repository_test.dart`, `payment_draft_test.dart` and `payment_widget_test.dart` cover partial/full amounts, historic dates, concurrent additions, stale/wrong-bill corrections, overpayments, complete rollback, file-backed reopen, order edit guards, cancelled/delivered status independence and small-screen receive/replace/void flows. Prior tests remain active; shared scrolling helpers live in `widget_helpers.dart`.
+
+To update the local Phase 2 checkout without changing main:
+
+```sh
+git switch phase-2-offline-orders
+git pull --ff-only
+flutter pub get --enforce-lockfile
+flutter build apk --debug
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
+```
+
+Build on the same local machine/signing key used for the Phase 2 debug APK. Keep the application ID and app-private database; `adb install -r` requests an update. Verify saved records and the new payment controls after installation. Android upgrade/force-stop behavior still requires device validation; automated file-reopen tests are a separate check.

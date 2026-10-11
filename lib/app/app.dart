@@ -71,7 +71,7 @@ class _SettingsScreen extends StatelessWidget {
         'Records stay on this device. Uninstalling the app or losing the device can remove your data.',
       ),
       const SizedBox(height: 24),
-      const Text('Development version · 0.2.0'),
+      const Text('Development version · 0.3.0'),
     ],
   );
 }

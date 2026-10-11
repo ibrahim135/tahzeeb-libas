@@ -12,24 +12,9 @@ import 'package:tahzeeb_libas/features/orders/domain/catalog.dart';
 import 'package:tahzeeb_libas/features/orders/presentation/garment_editor.dart';
 
 import 'fixtures.dart';
+import 'widget_helpers.dart';
 
 import 'package:tahzeeb_libas/features/orders/domain/order_query.dart';
-
-Future<void> reveal(WidgetTester tester, Finder finder) async {
-  await tester.scrollUntilVisible(
-    finder,
-    300,
-    scrollable: find
-        .descendant(
-          of: find.byType(ListView).last,
-          matching: find.byType(Scrollable),
-        )
-        .first,
-    maxScrolls: 60,
-  );
-  await tester.ensureVisible(finder);
-  await tester.pumpAndSettle();
-}
 
 void main() {
   testWidgets(

@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 
 import '../../../core/value_objects.dart';
+import '../../payments/application/payment_draft.dart';
 import '../domain/catalog.dart';
 import '../domain/records.dart';
 
@@ -138,8 +139,18 @@ class OrderDraft {
     required String bill,
     required String discount,
     required String notes,
+    String advance = '',
+    BusinessDate? advanceDate,
+    String advanceMethod = '',
+    String advanceNotes = '',
   }) {
     if (customer == null) throw ArgumentError('Select or create a customer.');
+    final received = PaymentDraft.optionalAmount(advance);
+    if (original != null && received.paise != 0) {
+      throw ArgumentError(
+        'Use Add payment on the saved bill to record a payment.',
+      );
+    }
     final clock = DateTime.now().toUtc();
     final now = original != null && !clock.isAfter(original!.updatedAt)
         ? original!.updatedAt.add(const Duration(microseconds: 1))
@@ -156,7 +167,17 @@ class OrderDraft {
       createdAt: original?.createdAt ?? now,
       updatedAt: now,
       items: garments.map((g) => g.build(now)).toList(),
-      payments: original?.payments ?? [],
+      payments:
+          original?.payments ??
+          [
+            if (received.paise > 0)
+              PaymentDraft(
+                date: advanceDate ?? orderDate,
+                amount: advance,
+                method: advanceMethod,
+                notes: advanceNotes,
+              ).build(now: now),
+          ],
     );
   }
 }
