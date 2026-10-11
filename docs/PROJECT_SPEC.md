@@ -1,6 +1,6 @@
 # Tahzeeb Libas — project specification
 
-Status: agreed baseline; Phases 1–3 are implemented. Changes to these defaults can be agreed before their implementation milestone. See IMPLEMENTATION_PLAN.md for the current stopping point.
+Status: agreed baseline; Phases 1–4 are implemented. Changes to these defaults can be agreed before their implementation milestone. See IMPLEMENTATION_PLAN.md for the current stopping point.
 
 ## Purpose and boundaries
 
@@ -89,7 +89,7 @@ Large touch targets, phone/numeric keyboards, INR formatting and compact-phone l
 
 ## XLSX schema v1
 
-Document exact headers/types in `docs/WORKBOOK_SCHEMA.md` when implemented. Sheets are Customers, Orders, OrderItems, Measurements, Payments, ShopSettings and Metadata. Customer/order/item/payment fields above are exported including correction records and timestamps; omit only reproducible search keys. Measurements contain item_id, field_key and value_decimal. ShopSettings preserves shop identity. Metadata includes workbook_schema_version, source_database_schema_version, exported_at, currency, measurement_unit and next_bill_number. Restore counter must be at least both the imported counter and next available local number.
+Document exact headers/types in `docs/WORKBOOK_SCHEMA.md` (implemented in Phase 4). Sheets are Customers, Orders, OrderItems, Measurements, Payments, ShopSettings and Metadata. Customer/order/item/payment fields above are exported including correction records and timestamps; omit only reproducible search keys. Measurements contain item_id, field_key and value_decimal. ShopSettings preserves shop identity. Metadata includes workbook_schema_version, source_database_schema_version, exported_at, currency, measurement_unit and next_bill_number. Restore counter must be at least both the imported counter and next available local number.
 
 IDs, phones and bill numbers are explicit text cells to preserve leading zeroes. Money is integer paise with `_paise` headers. Date-only and UTC timestamps are ISO text. Optional values use blank cells. Never include derived totals as authoritative inputs. Schema-version checks reject unsupported versions rather than guessing.
 

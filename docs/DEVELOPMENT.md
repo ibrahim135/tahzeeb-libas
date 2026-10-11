@@ -1,14 +1,14 @@
-# Development guide — Phases 1–3
+# Development guide — Phases 1–4
 
 ## Scope
 
-Phase 1 introduced an Android Flutter scaffold, Material 3 navigation, Riverpod-owned database/repository providers, validated immutable domain records and transactional Drift persistence. Phase 2 adds customer/order entry and editing, customer history, duplicate review/reuse, search and filters, and per-garment measurements. Phase 3 adds advance entry during order creation, received payments on saved bills, dated history and audited void/replacement corrections. The PAYMENT tab displays derived charges, received amounts and balance. XLSX and PDFs remain in their specified later phases. Current development version: 0.3.0+3.
+Phase 1 introduced an Android Flutter scaffold, Material 3 navigation, Riverpod-owned database/repository providers, validated immutable domain records and transactional Drift persistence. Phase 2 adds customer/order entry and editing, customer history, duplicate review/reuse, search and filters, and per-garment measurements. Phase 3 adds advance entry during order creation, received payments on saved bills, dated history and audited void/replacement corrections. The PAYMENT tab displays derived charges, received amounts and balance. Phase 4 adds versioned XLSX backups, templates and validated atomic import. PDFs remain Phase 5. Current development version: 0.4.0+4.
 
 ## Toolchain
 
 Tested SDK: Flutter stable 3.47.7 (commit abaf9c523780a608bd46686fd5e53740a07077f8), bundled Dart 3.13.5. `.flutter-version` records the pin. Java is Temurin JDK 21.0.12.1+1; the preinstalled Java runtime lacked javac. Android SDK platforms 35/36, build tools 36.0.0, NDK 28.2.13676358 and CMake 3.22.1. Generated Android defaults use AGP 9.1.0, Kotlin 2.4.0 and Gradle 9.3.1. The wrapper includes the official distribution SHA-256. Minimum Android API 24 (Android 7.0) follows Flutter's generated default; review it against the owner's phone before release. Application ID `in.tahzeeb.tahzeeb_libas` is provisional until Phase 6.
 
-Current resolved packages include Riverpod 3.4.3, Drift 2.35.2, drift_dev 2.35.1, sqlite3 3.7.0, path_provider 2.1.6, uuid 4.6.0 and intl 0.20.3. Exact transitive resolution and package hashes are in pubspec.lock. SQLite uses sqlite3's native assets; no obsolete sqlite3_flutter_libs dependency is needed. Excel/share/PDF packages are deliberately not installed yet.
+Current resolved packages include Riverpod 3.4.3, Drift 2.35.2, drift_dev 2.35.1, sqlite3 3.7.0, path_provider 2.1.6, uuid 4.6.0 and intl 0.20.3. Exact transitive resolution and package hashes are in pubspec.lock. SQLite uses sqlite3's native assets; no obsolete sqlite3_flutter_libs dependency is needed. Phase 4 resolves excel 4.0.6, file_picker 13.1.0, share_plus 13.3.1, archive 3.6.1 and xml 6.6.1. Their actual SDK constraints were checked against Dart 3.13.5/Flutter 3.47.7; Android plugins use Java 17 targets and minimum API 21, compatible with this app’s JDK 21/minimum API 24. archive 3.6.1 is the version compatible with excel’s constraint. PDF packages are reserved for Phase 5.
 
 ## Commands
 
@@ -52,7 +52,7 @@ flutter test
 
 Never replace a released schema snapshot. Increment the database version, implement an explicit migration and add data-preservation upgrade tests. There is no historical version before v1. Existing v1 opens without destructive migration; unimplemented version transitions fail rather than drop records. A narrowly scoped recursive_getters lint exclusion documents Drift's column-check DSL references; generated column constraints are tested against SQLite.
 
-Android platform automatic backup is disabled pending deliberate user-visible XLSX backup in Phase 4. Data currently survives restarts but uninstall/device loss can remove it. Release signing is left unconfigured, preventing the generated debug key from being mistaken for production ownership.
+Android platform automatic backup stays disabled; Phase 4 supplies deliberate user-controlled XLSX backups. Data survives restarts but uninstall/device loss can remove unexported records. Release signing is left unconfigured, preventing the generated debug key from being mistaken for production ownership.
 
 ## Phase 2 code map and workflow
 
@@ -65,7 +65,7 @@ Android platform automatic backup is disabled pending deliberate user-visible XL
 
 No database tables or dependency versions changed in Phase 2; schema remains v1. Tests in `phase2_repository_test.dart`, `order_draft_test.dart` and `phase2_widget_test.dart` cover financial/stale guards, rollback, search/filter/sort, snapshot isolation and the real input/navigation flows. Existing persistence and migration-baseline tests remain active.
 
-Before shop deployment, finish user-controlled backup and release/device validation. This development APK has no export or recovery UI yet.
+Before shop deployment, finish PDF and release/device validation. Phase 4 now supplies the backup and import UI.
 
 ## Phase 3 payments
 
@@ -77,7 +77,7 @@ Payments cannot predate the order or be future-dated. Historical receipt dates r
 
 Schema remains v1 and dependency versions remain locked. The existing payments table already supports the audit fields. Tests in `payment_repository_test.dart`, `payment_draft_test.dart` and `payment_widget_test.dart` cover partial/full amounts, historic dates, concurrent additions, stale/wrong-bill corrections, overpayments, complete rollback, file-backed reopen, order edit guards, cancelled/delivered status independence and small-screen receive/replace/void flows. Prior tests remain active; shared scrolling helpers live in `widget_helpers.dart`.
 
-To update the local Phase 2 checkout without changing main:
+To update the existing local development checkout without changing main:
 
 ```sh
 git switch phase-2-offline-orders
@@ -87,4 +87,20 @@ flutter build apk --debug
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
 
-Build on the same local machine/signing key used for the Phase 2 debug APK. Keep the application ID and app-private database; `adb install -r` requests an update. Verify saved records and the new payment controls after installation. Android upgrade/force-stop behavior still requires device validation; automated file-reopen tests are a separate check.
+Build on the same local machine/signing key used for the installed debug APK. Keep the application ID and app-private database; `adb install -r` requests an update. Verify saved records and the new Excel controls after installation. Android upgrade/force-stop behavior still requires device validation; automated file-reopen tests are a separate check.
+
+## Phase 4 Excel transfer
+
+- `features/transfer/domain/workbook.dart`: versioned columns, immutable portable rows, preview/result models and repository abstraction.
+- `domain/workbook_validation.dart`: typed UUID/date/enum/financial validation and complete cross-sheet order construction. `domain/import_policy.dart` compares canonical persisted fields, existing order histories, normalized bills, customer matches and the reviewed database snapshot. Aggregate comparison groups children once rather than repeatedly scanning the workbook.
+- `data/workbook_codec.dart`: XLSX generation/parsing, literal text export, row/field diagnostics and bounded ZIP/XML preflight, including deceptive expanded lengths, cached formulas and sparse addresses.
+- `data/drift_workbook_repository.dart`: consistent export snapshot; read-only preview; transaction-time revalidation; insert-only import, derived search keys, deferred payment replacement links, explicitly confirmed settings replacement and monotonic bill counter. Raw SQL uses fixed schema identifiers and bound values, with Drift table notifications so current lists refresh after commit.
+- `application/workbook_transfer.dart`: orchestration and worker-isolate encoding/decoding. Repository policy also runs off the UI thread while the database transaction holds a consistent view.
+- `data/android_workbook_files.dart`: current file_picker system document APIs, bounded streaming reads, system save and share_plus integration. Recent private share copies are retained for receiving apps and stale copies are cleared on the next share. No main-manifest permission change.
+- `presentation/`: save/share readiness and import review screens; `features/settings/presentation/settings_screen.dart` provides entry points and backup guidance. Busy operations disable duplicate actions/back navigation. Cancelling a picker/save/preview makes no database change.
+
+Read WORKBOOK_SCHEMA.md for every field, null/text convention, resource limit, example/template rule and conflict policy. Workbook and DB schemas are both v1; no migration or regenerated Drift files are needed for Phase 4. Settings editing and PDFs remain Phase 5; Phase 4 preserves settings through export and explicit restore. Import is not an editor for existing bills.
+
+New tests: workbook_repository_test.dart, workbook_codec_test.dart and workbook_widget_test.dart. These cover full-field transfers, audited history, no-write duplicate import, references/conflicts, late counter-trigger rollback including all tables, stale preview, duplicate/settings review, file reopen, archive/formula attacks, text conventions, reactive order refresh and compact preview/save/cancel controls. Mocked save/share widget tests do not certify actual Android file-provider behavior.
+
+On the Android phone: update with the same signing key; check saved v0.3 records; export/save/share a workbook; preview and cancel; re-import the same backup (zero new records); save/fill the blank template and preview a new complete order; check measured/voided payment history. Test restoration into an empty installation on a separate test device/profile rather than deleting the shop’s live records. Keep the actual backup outside the phone. Record device/Android version and chosen document providers.

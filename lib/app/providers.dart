@@ -7,6 +7,10 @@ import '../features/orders/data/drift_tailoring_repository.dart';
 import '../features/orders/domain/records.dart';
 import '../features/orders/domain/order_query.dart';
 import '../features/orders/domain/repository.dart';
+import '../features/transfer/application/workbook_transfer.dart';
+import '../features/transfer/data/android_workbook_files.dart';
+import '../features/transfer/data/drift_workbook_repository.dart';
+import '../features/transfer/domain/workbook.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final database = AppDatabase.production();
@@ -38,3 +42,16 @@ final customerProvider = FutureProvider.autoDispose
     .family<CustomerRecord?, String>(
       (ref, id) => ref.watch(repositoryProvider).getCustomer(id),
     );
+
+final workbookRepositoryProvider = Provider<WorkbookRepository>(
+  (ref) => DriftWorkbookRepository(ref.watch(databaseProvider)),
+);
+final workbookFilesProvider = Provider<WorkbookFiles>(
+  (ref) => AndroidWorkbookFiles(),
+);
+final workbookTransferProvider = Provider<WorkbookTransfer>(
+  (ref) => WorkbookTransfer(
+    ref.watch(workbookRepositoryProvider),
+    ref.watch(workbookFilesProvider),
+  ),
+);

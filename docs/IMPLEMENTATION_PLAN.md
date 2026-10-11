@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: Phases 1–3 authorized and implemented; see ENVIRONMENT_STATUS.md for verification and device limitations. Start later phases only after an explicit user instruction. Work on one requested phase at a time; preserve previously working functionality.
+Status: Phases 1–4 authorized and implemented; see ENVIRONMENT_STATUS.md for verification and device limitations. Start later phases only after an explicit user instruction. Work on one requested phase at a time; preserve previously working functionality.
 
 ## Environment and dependency selection
 
@@ -76,4 +76,4 @@ Use the existing isolated `/workspace/tahzeeb-libas` checkout; no worktree unles
 
 ## Current stopping point
 
-Phase 3 payments and correction history are implemented. Await instruction to begin Phase 4 (versioned XLSX backup/export/import). PDFs and release hardening remain later phases. See ENVIRONMENT_STATUS.md for executed checks and outstanding Android-device validation.
+Phase 4 versioned XLSX backup/export/import is implemented, including settings/counter restoration, safe preview, bounded parsing and atomic add-only commits. Await instruction to begin Phase 5 (customer receipt and warehouse measurement-slip PDFs). Release hardening remains Phase 6. Android file picker/save/share still needs a real-device check; cloud compilation and automated tests are separate evidence. See ENVIRONMENT_STATUS.md for executed checks and outstanding Android-device validation.

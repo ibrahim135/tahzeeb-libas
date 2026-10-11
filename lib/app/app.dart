@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/customers/presentation/customers_screen.dart';
 import '../features/orders/presentation/order_list.dart';
+import '../features/settings/presentation/settings_screen.dart';
 
 class TahzeebApp extends StatelessWidget {
   const TahzeebApp({super.key});
@@ -34,7 +35,7 @@ class _ShopShellState extends ConsumerState<ShopShell> {
       body: SafeArea(
         child: IndexedStack(
           index: selected,
-          children: const [OrderList(), CustomersScreen(), _SettingsScreen()],
+          children: const [OrderList(), CustomersScreen(), SettingsScreen()],
         ),
       ),
       bottomNavigationBar: NavigationBar(
@@ -57,21 +58,4 @@ class _ShopShellState extends ConsumerState<ShopShell> {
       ),
     );
   }
-}
-
-class _SettingsScreen extends StatelessWidget {
-  const _SettingsScreen();
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      Text('Offline storage', style: Theme.of(context).textTheme.headlineSmall),
-      const SizedBox(height: 16),
-      const Text(
-        'Records stay on this device. Uninstalling the app or losing the device can remove your data.',
-      ),
-      const SizedBox(height: 24),
-      const Text('Development version · 0.3.0'),
-    ],
-  );
 }
